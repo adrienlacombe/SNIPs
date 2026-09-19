@@ -179,16 +179,6 @@ export const VALID = [
     description: 'Optional verifyingContract in the domain.',
     typed_data: doc({ Ping: [{ name: 'n', type: 'u8' }] }, 'Ping', { n: 1 }, { ...DOMAIN, verifyingContract: '0x0777' }, [...DOMAIN_TYPE, { name: 'verifyingContract', type: 'ContractAddress' }]),
   },
-  {
-    name: 'domain-salt',
-    description: 'Optional salt in the domain.',
-    typed_data: doc({ Ping: [{ name: 'n', type: 'u8' }] }, 'Ping', { n: 1 }, { ...DOMAIN, salt: '0x5a17' }, [...DOMAIN_TYPE, { name: 'salt', type: 'felt' }]),
-  },
-  {
-    name: 'domain-verifying-contract-and-salt',
-    description: 'Both optional domain fields, in the required order.',
-    typed_data: doc({ Ping: [{ name: 'n', type: 'u8' }] }, 'Ping', { n: 1 }, { ...DOMAIN, verifyingContract: '0x0777', salt: '0x5a17' }, [...DOMAIN_TYPE, { name: 'verifyingContract', type: 'ContractAddress' }, { name: 'salt', type: 'felt' }]),
-  },
 ];
 
 const ping = (over = {}) => doc({ Ping: [{ name: 'n', type: 'u8' }] }, 'Ping', { n: 1 }, { ...DOMAIN, ...over });
@@ -199,7 +189,7 @@ export const INVALID = [
   { name: 'domain-extra-field', reason: 'domain object has a field the domain type does not declare', typed_data: ping({ extra: 1 }) },
   { name: 'domain-chain_id-key', reason: 'legacy chain_id key', typed_data: (() => { const d = ping(); delete d.domain.chainId; d.domain.chain_id = 'SN_SEPOLIA'; return d; })() },
   { name: 'domain-fields-reordered', reason: 'domain type fields must be in the specified order', typed_data: (() => { const d = ping(); d.types.StarknetDomain = [DOMAIN_TYPE[0], DOMAIN_TYPE[2], DOMAIN_TYPE[1], DOMAIN_TYPE[3]]; return d; })() },
-  { name: 'domain-optional-out-of-order', reason: 'salt must come after verifyingContract', typed_data: doc({ Ping: [{ name: 'n', type: 'u8' }] }, 'Ping', { n: 1 }, { ...DOMAIN, salt: '0x1', verifyingContract: '0x2' }, [...DOMAIN_TYPE, { name: 'salt', type: 'felt' }, { name: 'verifyingContract', type: 'ContractAddress' }]) },
+  { name: 'domain-salt-field', reason: 'salt is not a StarknetDomain field in revision 2', typed_data: doc({ Ping: [{ name: 'n', type: 'u8' }] }, 'Ping', { n: 1 }, { ...DOMAIN, salt: '0x5a17' }, [...DOMAIN_TYPE, { name: 'salt', type: 'felt' }]) },
   { name: 'primary-type-is-domain', reason: 'primaryType cannot be StarknetDomain', typed_data: (() => { const d = ping(); d.primaryType = 'StarknetDomain'; d.message = d.domain; return d; })() },
   { name: 'unknown-type', reason: 'field type is neither basic nor declared', typed_data: doc({ Ping: [{ name: 'n', type: 'uint256' }] }, 'Ping', { n: 1 }) },
   { name: 'dangling-type', reason: 'declared type not reachable from primaryType', typed_data: doc({ Ping: [{ name: 'n', type: 'u8' }], Unused: [{ name: 'x', type: 'u8' }] }, 'Ping', { n: 1 }) },

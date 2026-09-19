@@ -467,7 +467,7 @@ Revision `2` fixes these by specification rather than by patching libraries, bec
 | --- | --- | --- |
 | `revision` value | integer `1` (typed `shortstring`) | JSON string `"2"`, encoded as the shortstring `0x32` |
 | Unknown revision | unspecified | MUST be rejected |
-| Domain fields | `name`, `version`, `chainId`, `revision` | same, plus optional `verifyingContract` and `salt` |
+| Domain fields | `name`, `version`, `chainId`, `revision` | same, plus optional `verifyingContract` |
 | `chainId` | unspecified | MUST equal the chain the wallet is connected to |
 | Presets (`u256`, `TokenAmount`, `NftId`) | structs hashed with a type-hash prefix | `u256` is a basic type encoded as two felts; `TokenAmount` and `NftId` are ordinary user-defined structs (recommended shapes below) |
 | Enums | referenced as `"type": "enum", "contains": "E"` | referenced by name like structs: `"type": "E"` |
@@ -527,25 +527,21 @@ signed_data = hash_array('StarkNet Message', Enc[domain], account, Enc[message])
   { "name": "version", "type": "shortstring" },
   { "name": "chainId", "type": "shortstring" },
   { "name": "revision", "type": "shortstring" },
-  { "name": "verifyingContract", "type": "ContractAddress" },   // optional
-  { "name": "salt", "type": "felt" }                            // optional
+  { "name": "verifyingContract", "type": "ContractAddress" }    // optional
 ]
 ```
 
 - The first four fields are mandatory and MUST appear in this order with these names and types. The order of keys inside a field descriptor (`name`, `type`) is not significant.
-- `verifyingContract` and `salt` are optional. When present they MUST appear after `revision`, in this order. Exactly four definitions of `StarknetDomain` are therefore valid; their type hashes are:
+- `verifyingContract` is optional. When present it MUST appear after `revision`. Exactly two definitions of `StarknetDomain` are therefore valid; their type hashes are:
 
 | Fields | `type_hash(StarknetDomain)` |
 | --- | --- |
 | `name, version, chainId, revision` | `0x1ff2f602e42168014d405a94f75e8a93d640751d71d16311266e140d8b0a210` (identical to revision 1) |
 | `..., verifyingContract` | `0x22a208060c1d6c5515c9576d39d2b7c812e54202f1e05ea6428500efb4b6a8b` |
-| `..., salt` | `0xa6be7486d2812c36d3c878d0053106533675d70a104fe5600617305bcac793` |
-| `..., verifyingContract, salt` | `0x3d8dc39daf4e8de4ab71497d1947ca1e97d04084a7889c13434359080e3797f` |
 
 - The `domain` object MUST contain exactly the fields declared in the `StarknetDomain` type: no missing fields, no undeclared fields.
 - `chainId` is the chain identifier as a shortstring, for example `"SN_MAIN"`. A wallet MUST reject a request whose `chainId` is not the chain it is connected to.
 - `verifyingContract` SHOULD be set to the contract that will verify the signature whenever there is one. It prevents two contracts that share a `name` and `version` from accepting each other's signatures. It is optional rather than mandatory because one signature may legitimately authorise a workflow that spans several contracts, for example releasing liquidity from multiple pools; in that case the domain `name` and `version` carry the binding and the message itself should identify the contracts involved.
-- `salt` is an arbitrary felt for further disambiguation, as in EIP-712.
 
 The domain is hashed as a struct: `Enc[domain] = hash_array(type_hash(StarknetDomain), Enc[name], Enc[version], Enc[chainId], Enc[revision], ...)`.
 
@@ -670,7 +666,7 @@ Example, using the `Payment` types from the test vectors:
 A conforming implementation MUST reject a request, before signing or hashing, when any of the following holds:
 
 1. `domain.revision` is not the JSON string `"2"`.
-2. `types.StarknetDomain` is not one of the four definitions above, or the `domain` object does not have exactly the declared fields.
+2. `types.StarknetDomain` is not one of the two definitions above, or the `domain` object does not have exactly the declared fields.
 3. `domain.chainId` is not the chain the wallet is connected to (wallets).
 4. `primaryType` is `StarknetDomain`, is not declared in `types`, or is not a struct.
 5. A type name or field name violates the naming rules, a type name is a basic type name, a type declares two fields with the same name, or a field descriptor carries a key other than `name`, `type` and (for `merkletree` fields) `contains`.
@@ -713,18 +709,24 @@ Implementations MAY additionally impose limits on document size, array length an
 
 ### Relationship to revision 1 and migration
 
-- Revision `1` is unchanged and remains valid. Its hashes are hard-coded in deployed account contracts through SNIP-9 `execute_from_outside_v2`, so its rules cannot be corrected in place. Implementers should treat the revision `1` behaviour of starknet.js as the de-facto reference where the revision `1` text is ambiguous (enum colon, enum value without type hash, nested `u256`, numeric short strings), pending a separate clarification of the revision `1` text.
+- Revision `1` is unchanged and remains valid. Its hashes are hard-coded in deployed account contracts through SNIP-9 `execute_from_outside_v2`, so its rules cannot be corrected in place. Implementers should treat the revision `1` behaviour of starknet.js as the de-facto reference where the revision `1` text is ambiguous (enum colon, enum value without type hash, nested `u256`, numeric short strings, and the merkle tree algorithm, where starknet.js hashes node pairs with the two-input Poseidon and pairs an odd node with `0`), pending a separate clarification of the revision `1` text. None of these behaviours carry over: for revision `2` the reference is this text and the test vectors, not any library. The merkle case deserves care because the odd-node difference only shows with an odd number of leaves.
 - Dapps whose contracts verify signatures through `is_valid_signature(hash, signature)` can adopt revision `2` independently of account contract upgrades: only the dapp's hashing code and the wallet need to support it.
 - Standards that embed SNIP-12 hashing in account contracts (SNIP-9, SNIP-29) should define their next version on revision `2` rather than revision `1`, so that the enum, `u256` and tuple ambiguities are not frozen into account code a second time.
 
-### Open questions for review
+### Decisions recorded during review
 
-1. `u256` flattened as two felts (this draft) or nested with a type-hash prefix as in the revision `1` text.
-2. Enum type string without a colon (this draft, matching the revision `1` text and OpenZeppelin) or with the colon that starknet.js, starknet.py and starknet-rs ship.
-3. Whether `verifyingContract` should be mandatory rather than optional.
-4. Whether the `'StarkNet Message'` prefix should become `'Starknet Message'`.
-5. Whether `string` should keep the `ByteArray` serialisation or move to a simpler `hash_array` over 31-byte chunks.
-6. Whether `hash_array` should be Blake2s instead of Poseidon. Starknet moved compiled-class hashes to Blake2s in v0.14.1 (SNIP-34) and OS program and config hashes in v0.14.3, because Blake is about 3x cheaper to prove with Stwo (8x on the CASM-hash component once batching is counted) and avoids Poseidon's post-quantum questions. Against it, for the contracts that verify SNIP-12 signatures: under the current fee schedule one Blake2s compression (64 bytes, which under the SNIP-34 felt encoding carries two large felts) costs 3,334 gas, against 491 gas plus three steps for one Poseidon permutation that also absorbs two felts, so roughly 4x per large felt; and Cairo contracts must first split every felt into u32 words without hints. A Cairo 2.18 measurement with a SNIP-34-compatible Blake felt hash (checked against starknet.js's `blake2sHashMany`) put a 32-felt hash at 10x to 30x the Poseidon cost, or about 2x when only the compression step is counted. SNIP-12 inputs are almost all large felts (type hashes, struct hashes, addresses), and every wallet, SDK, account contract and merkle library speaks Poseidon today. This draft keeps Poseidon. The question should be reopened if a felt-native Blake libfunc ships or the Poseidon builtin is repriced.
+The following questions were open in the first draft and were settled in review (SNIP-12 authors, starknet.js, starknet.py and OpenZeppelin maintainers). They are recorded here with the reasoning so the choices are not reopened by accident.
+
+1. **`u256` is flattened** to two felts, with no type-hash prefix. This matches Cairo's derived `Hash` and OpenZeppelin's implementation. A rule that requires fighting the host language's default gets worked around instead of followed; the loss of the "one felt per value" invariant is handled explicitly in the struct and array rules.
+2. **Enum type strings carry no colon**: `"E"("V"("u128"))`. Everywhere else in a type string a colon separates a field name from a quoted type; what follows a variant name is a parenthesised parameter list, not a type, so the colon form looks like `name:type` without being one. Migration cost is nil, since revision `2` also drops the `"type": "enum"` pseudo-type.
+3. **The `'StarkNet Message'` prefix is kept.** Its spelling carries no meaning; changing it would move every hash for no gain and put two spellings in circulation.
+4. **`string` keeps the Cairo `ByteArray` serialisation.** It is what Cairo produces natively and the one construct that already works the same way on both sides.
+5. **`hash_array` is Poseidon.** Starknet moved compiled-class hashes to Blake2s in v0.14.1 (SNIP-34) and OS program and config hashes in v0.14.3, because Blake is about 3x cheaper to prove with Stwo (8x on the CASM-hash component once batching is counted) and avoids Poseidon's post-quantum questions. For the contracts that verify SNIP-12 signatures the picture is the reverse: under the current fee schedule one Blake2s compression (64 bytes, two large felts under the SNIP-34 encoding) costs 3,334 gas against 491 gas plus three steps for one Poseidon permutation that also absorbs two felts, roughly 4x per large felt; and Cairo exposes only the Blake2s compression step (`blake2s_compress`, `blake2s_finalize` over `u32` words), so splitting every felt into words, padding and chaining fall on the contract without hints. A Cairo 2.18 measurement with a SNIP-34-compatible Blake felt hash, checked against starknet.js's `blake2sHashMany`, put a 32-felt hash at 10x to 30x the Poseidon cost, or about 2x when only the compression step is counted. SNIP-12 inputs are almost all large felts, and every wallet, SDK, account contract and merkle library speaks Poseidon today.
+6. **`salt` is removed from the domain.** `version` is already a free shortstring the dapp controls, and bumping it both invalidates outstanding signatures and separates domains; `salt` added no capability while doubling the number of valid `StarknetDomain` shapes.
+
+### Open question for review
+
+1. **Whether `verifyingContract` should be mandatory rather than optional.** Positions so far. For mandatory: `name` and `version` are free-form with no registry behind them, so two unrelated contracts that pick the same pair share a domain hash (a live example is a `CallSet` domain with `name: 'CallSet'`, `version: 1` and no contract binding, used by several deployable pool instances on one chain); and the multi-contract workflow either has one orchestrating verifier that can be named, or needs N verifications with N copies of the message and no atomicity. For optional: some signatures are never verified by any contract (sign-in, attestations), and a mandatory field there means a dummy `0` that looks like a binding but is not, which a wallet cannot tell apart from a real one. Proposed middle path: keep it optional, require wallets to display whether it is present, and have wallets warn when a request omits it.
 
 ## Implementation
 

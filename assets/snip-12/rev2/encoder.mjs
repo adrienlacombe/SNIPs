@@ -70,7 +70,6 @@ const DOMAIN_REQUIRED = [
 ];
 const DOMAIN_OPTIONAL = [
   { name: 'verifyingContract', type: 'ContractAddress' },
-  { name: 'salt', type: 'felt' },
 ];
 
 const FORBIDDEN_NAME_CHARS = new Set(['"', '\\', '(', ')', ',', ':', '*']);
@@ -192,12 +191,10 @@ function checkObjectKeys(obj, expected, what) {
 }
 
 export function allowedDomainDefinitions() {
-  const [vc, salt] = DOMAIN_OPTIONAL;
+  const [vc] = DOMAIN_OPTIONAL;
   return [
     [...DOMAIN_REQUIRED],
     [...DOMAIN_REQUIRED, vc],
-    [...DOMAIN_REQUIRED, salt],
-    [...DOMAIN_REQUIRED, vc, salt],
   ];
 }
 

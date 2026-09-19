@@ -1514,131 +1514,6 @@
         "struct_hash": "0x558305362c387f41a3faf93b835f36a7066f6c0960fe69b1e1a8823ef19b13d",
         "message_hash": "0x25de19ad50ba0b1f809ab3ccd758e135530775c1e271227a1ed01a5c7a4d64f"
       }
-    },
-    {
-      "name": "domain-salt",
-      "description": "Optional salt in the domain.",
-      "typed_data": {
-        "types": {
-          "StarknetDomain": [
-            {
-              "name": "name",
-              "type": "shortstring"
-            },
-            {
-              "name": "version",
-              "type": "shortstring"
-            },
-            {
-              "name": "chainId",
-              "type": "shortstring"
-            },
-            {
-              "name": "revision",
-              "type": "shortstring"
-            },
-            {
-              "name": "salt",
-              "type": "felt"
-            }
-          ],
-          "Ping": [
-            {
-              "name": "n",
-              "type": "u8"
-            }
-          ]
-        },
-        "primaryType": "Ping",
-        "domain": {
-          "name": "SNIP-12 Rev 2 Vectors",
-          "version": "1",
-          "chainId": "SN_SEPOLIA",
-          "revision": "2",
-          "salt": "0x5a17"
-        },
-        "message": {
-          "n": 1
-        }
-      },
-      "expected": {
-        "encode_type": {
-          "StarknetDomain": "\"StarknetDomain\"(\"name\":\"shortstring\",\"version\":\"shortstring\",\"chainId\":\"shortstring\",\"revision\":\"shortstring\",\"salt\":\"felt\")",
-          "Ping": "\"Ping\"(\"n\":\"u8\")"
-        },
-        "type_hash": {
-          "StarknetDomain": "0xa6be7486d2812c36d3c878d0053106533675d70a104fe5600617305bcac793",
-          "Ping": "0x351274262ab1c14ee75490b3e5216a9ef59a8fec7b4cb7110e297dd4de697ac"
-        },
-        "domain_hash": "0x5314b052a38ef059392f189f8a622a1e7e4a25be4f04d9ebcaa7b184a65e6cc",
-        "struct_hash": "0x558305362c387f41a3faf93b835f36a7066f6c0960fe69b1e1a8823ef19b13d",
-        "message_hash": "0x5207c463618e39511e0431ceef7864d18656c899eaeea3160834e2df72f2bd3"
-      }
-    },
-    {
-      "name": "domain-verifying-contract-and-salt",
-      "description": "Both optional domain fields, in the required order.",
-      "typed_data": {
-        "types": {
-          "StarknetDomain": [
-            {
-              "name": "name",
-              "type": "shortstring"
-            },
-            {
-              "name": "version",
-              "type": "shortstring"
-            },
-            {
-              "name": "chainId",
-              "type": "shortstring"
-            },
-            {
-              "name": "revision",
-              "type": "shortstring"
-            },
-            {
-              "name": "verifyingContract",
-              "type": "ContractAddress"
-            },
-            {
-              "name": "salt",
-              "type": "felt"
-            }
-          ],
-          "Ping": [
-            {
-              "name": "n",
-              "type": "u8"
-            }
-          ]
-        },
-        "primaryType": "Ping",
-        "domain": {
-          "name": "SNIP-12 Rev 2 Vectors",
-          "version": "1",
-          "chainId": "SN_SEPOLIA",
-          "revision": "2",
-          "verifyingContract": "0x0777",
-          "salt": "0x5a17"
-        },
-        "message": {
-          "n": 1
-        }
-      },
-      "expected": {
-        "encode_type": {
-          "StarknetDomain": "\"StarknetDomain\"(\"name\":\"shortstring\",\"version\":\"shortstring\",\"chainId\":\"shortstring\",\"revision\":\"shortstring\",\"verifyingContract\":\"ContractAddress\",\"salt\":\"felt\")",
-          "Ping": "\"Ping\"(\"n\":\"u8\")"
-        },
-        "type_hash": {
-          "StarknetDomain": "0x3d8dc39daf4e8de4ab71497d1947ca1e97d04084a7889c13434359080e3797f",
-          "Ping": "0x351274262ab1c14ee75490b3e5216a9ef59a8fec7b4cb7110e297dd4de697ac"
-        },
-        "domain_hash": "0x435c7c2226acd73f5304c1a61511eb6a01c6446b058b2d70951b8d349eab89",
-        "struct_hash": "0x558305362c387f41a3faf93b835f36a7066f6c0960fe69b1e1a8823ef19b13d",
-        "message_hash": "0x49cb31da1cbaa7809fcb4ee06f758a4e354b4b9d709c5cfa60a67e61000c183"
-      }
     }
   ],
   "invalid": [
@@ -1854,8 +1729,8 @@
       }
     },
     {
-      "name": "domain-optional-out-of-order",
-      "reason": "salt must come after verifyingContract",
+      "name": "domain-salt-field",
+      "reason": "salt is not a StarknetDomain field in revision 2",
       "typed_data": {
         "types": {
           "StarknetDomain": [
@@ -1878,10 +1753,6 @@
             {
               "name": "salt",
               "type": "felt"
-            },
-            {
-              "name": "verifyingContract",
-              "type": "ContractAddress"
             }
           ],
           "Ping": [
@@ -1897,8 +1768,7 @@
           "version": "1",
           "chainId": "SN_SEPOLIA",
           "revision": "2",
-          "salt": "0x1",
-          "verifyingContract": "0x2"
+          "salt": "0x5a17"
         },
         "message": {
           "n": 1
