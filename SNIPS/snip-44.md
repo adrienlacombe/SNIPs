@@ -267,10 +267,14 @@ the account leaf private key. A dedicated command SHOULD:
    scheme;
 2. accept the complete derivation context;
 3. derive or load the normal account leaf private key internally;
-4. execute `account-leaf-v1` internally;
-5. request user confirmation identifying the account, chain, and pool; and
-6. return only the viewing key, encoded as exactly 32 unsigned big-endian
+4. execute `account-leaf-v1` internally; and
+5. return only the viewing key, encoded as exactly 32 unsigned big-endian
    bytes, to the companion wallet.
+
+Whether a device requires authentication or user confirmation before exporting
+the viewing key, and how that authorization is obtained, are device-policy
+decisions outside the scope of this SNIP. This profile does not prescribe an
+authorization UI, session policy, or confirmation frequency.
 
 The account-key selector and transport encoding are device-specific and do not
 alter the KDF. The companion wallet MUST select the same account leaf used by
@@ -503,14 +507,27 @@ public_key_x =
   0x04366caa68f40c9467a805b2646bcca3ac60c320c165564f69bc2de4b668e7ed
 ```
 
+Serialization tests MUST assert exact fixed-width big-endian bytes and known
+derivation outputs, including preservation of leading zero bytes. Endianness
+cannot in general be detected from an input byte string: the 32-byte
+little-endian encoding of scalar `1` is also the valid big-endian encoding of
+scalar `2^248`. Implementations MUST interpret inputs as big-endian rather than
+attempt to infer their intended byte order.
+
 Negative tests MUST also verify rejection of:
 
 - an account leaf scalar outside its signing curve's valid range;
-- variable-width or little-endian encodings;
+- encodings whose lengths differ from the required fixed widths;
 - a context of any length other than 116 bytes;
 - a caller-selected domain separator or KDF counter;
 - a reduced scalar equal to zero or folding to `H`; and
 - a candidate public key that does not equal the registered public key.
+
+A standalone reference test suite is available in
+[`assets/snip-44/test_derivation.py`](../assets/snip-44/test_derivation.py).
+Run it from the repository root with `python3 assets/snip-44/test_derivation.py`.
+It uses only the Python standard library and is test code, not a production
+cryptographic implementation or evidence of hardware-wallet conformance.
 
 ## Implementation
 
@@ -574,10 +591,11 @@ expose a generic HMAC interface keyed by the account leaf, permit arbitrary
 domain separators, or make the private scalar available to the companion
 wallet.
 
-A compromised companion wallet that can invoke an approved hardware
-derivation command may obtain the viewing key. Hardware wallets SHOULD display
-that the operation grants access to private STRK20 history and SHOULD identify
-the account, chain, and pool before confirmation.
+A compromised companion wallet that can invoke a hardware derivation command
+may obtain the viewing key, subject to the device's authorization policy.
+Authentication, user confirmation, and export authorization are outside this
+SNIP's scope; conformance to this derivation profile does not establish that
+an export was authorized by the user.
 
 The KDF binds the full context. An incorrect chain, account, pool, or key index
 produces a different viewing key. Wallets MUST validate the active context and
